@@ -34,10 +34,10 @@ void MuLife()
 
    TString fname = path_to_file+"22febbraio2023.dat";
 
-   TString hname = "Run0";
+   TString hname = "Run0long_08-30_background_esponenziale";
 
    //---------histogram name for fit plot----------//
-   TString ffit = "MuLife, run 22/02/23 11:30-12:10";
+   TString ffit = "MuLife, run0 22/02/23 26h (truth model + background) 0.8-30";
 
    // auto df = ROOT::RDF::MakeCsvDataFrame(fname,false,'\t');
 
@@ -52,26 +52,63 @@ void MuLife()
    Double_t channel;
    tree->SetBranchAddress("x", &channel);
    tree->SetBranchAddress("y", &time);
-
+   auto min=0.8;
+   auto max=30.;
+   auto bins=30;
    //--------- Define Histrogram -----//
-   TH1D *h = new TH1D("h", hname, 100, 0, 30);
+   TH1D *h = new TH1D("h", hname, bins, min, max);
+
+   TH1D *h1 = new TH1D("h1", "t1 distribution", 100, 0, 750);
+
+   TH1D *h2 = new TH1D("h", "t2 distribution", 100, 0, 750);
+
+
+
+
 
    //-- Fill Histogram with stop-start signal--//
+   auto tmax=70;
+   auto tmaxx=690;
    for (Int_t i = 0; i < N; i++)
    {
       tree->GetEntry(i);
+      if(channel ==1){
+         auto ttemp=time;
+         h1->Fill(ttemp);
+      }
       if (channel == 2)
       {
          auto t2 = time;
+         auto channel2= channel;
          tree->GetEntry(i - 1);
          auto t1 = time;
+         auto channel1=channel;
+         /*if(channel2-channel1!=1){
+         std::cout<< "Channel1: "<< channel1 << std::endl;
+         std::cout<< "Channel2: "<< channel2 << std::endl;
+         }*/
+         //h1->Fill(t1);
+         h2->Fill(t2);
+         if(channel2==2&&channel1==1) {
          auto decaytime = (t2 - t1) * pow(10, 6);
-         h->Fill(decaytime);
+         if(decaytime<0) {
+            decaytime=decaytime+tmax;
+            if(t1>680&&t2<70) decaytime=decaytime-tmax+tmaxx;
+         }
+         if(decaytime<max&&decaytime>min) h->Fill(decaytime);
+         }
       }
    }
+   auto c = new TCanvas("c", "rawhist", 950, 800);
+   gPad->SetLogy();
    h->Draw();
+   auto ch1 = new TCanvas("ch1", "t1 distribution", 950, 800);
 
+   h1->Draw();
+   
+   auto ch2 = new TCanvas("ch2", "t2 distribution", 950, 800);
 
+   h2->Draw();
 
 
 
@@ -86,10 +123,10 @@ void MuLife()
    RooDataHist rh("rh", "rh" ,t , Import(*h));
 
    //-------lifetime variable---------//
-   RooRealVar tau("tau", "mean life of muon", 2.2, 0, 10);
+   RooRealVar tau("tau", "mean life of muon", 2.2, 1.5, 3.5);
 
    //----------Resolution function for signal--------------//
-
+   RooRealVar fsig("fsig", "signal component",0.5,0.2,0.99);
    //--------------delta----------------//
    // Build a truth resolution model (delta function)
    RooTruthModel tm1("tm", "truth model", t);
@@ -105,9 +142,16 @@ void MuLife()
    // Construct decay(t) (x) gauss1(t)
    RooDecay decay_gm1("decay_gm1", "decay", t, tau, gm1, RooDecay::SingleSided);
 
-   //-----------final pdf-------------//
-   RooDecay model = decay_tm;
+   //-------backgorund variable-------//
+   RooRealVar tauback("tauback","background constant",100,10,100000);
 
+   //-------Resolution function for background-------------//
+   RooDecay background("background","background exponential",t,tauback,tm1, RooDecay::SingleSided);
+
+
+   //-----------final pdf-------------//
+   //RooDecay model = decay_tm;
+   RooAddPdf model("model","signal and background",RooArgList(decay_tm,background),RooArgList(fsig));
 
 
 
@@ -116,7 +160,7 @@ void MuLife()
    //------------------------BLOCK 3---------------------------//
    //------------------ Fiting and drawing --------------------//
 
-   RooFitResult *fitResult = decay_tm.fitTo(rh, RecoverFromUndefinedRegions(1), 
+   RooFitResult *fitResult = model.fitTo(rh, RecoverFromUndefinedRegions(1), 
                                              Verbose(false), Warnings(false), Save(), 
                                              PrintEvalErrors(-1), PrintLevel(-1));
    //--------- print result on terminal -------//
@@ -128,15 +172,19 @@ void MuLife()
 
    rh.plotOn(xframe, MarkerStyle(6), MarkerSize(1)); //plot data
 
-   decay_tm.plotOn(xframe, LineWidth(2), LineColor(kRed)); //plot fitted pdf
+
+   model.plotOn(xframe, Components(background), LineColor(41), LineStyle(kDashed)); 
+   model.plotOn(xframe, Components(decay_tm), LineColor(30), LineStyle(9));
+   
+   model.plotOn(xframe, LineWidth(2), LineColor(kRed)); //plot fitted pdf
 
    //-------------plot parameters on figure----------------//
-   RooArgSet display(tau); //parameters to display on figure
-   decay_tm.paramOn(xframe,
+   RooArgSet display(tau,tauback,fsig); //parameters to display on figure
+   model.paramOn(xframe,
                  Parameters(display),
-                 Layout(0.7, 0.7, 0.78), //position
-                 Format("NE", AutoPrecision(1)));
-
+                 Layout(0.45, 0.6, 0.9), //position
+                 Format("NE", AutoPrecision()));
+   rh.statOn(xframe,Layout(0.8,0.99,0.9));
 
    xframe->getAttText()->SetTextSize(0.031); //parameters size and font
    xframe->getAttText()->SetTextFont(42);
@@ -160,15 +208,16 @@ void MuLife()
    //------------Bellurie (Fuso cc)------------//
    xframe->GetYaxis()->SetTitleOffset(1.5);
    xframe->GetXaxis()->SetTitleSize(0);
-
-   xframe->SetMinimum(0.001);
+   //pad1->SetLogy();
+   //xframe->SetMinimum(0.001);
    xframe->Draw();
 
 
    pad2->cd();
    pad2->SetBottomMargin(0.4);
-
-   hpull->GetYaxis()->SetNdivisions(6);
+   hpull->SetMinimum(-4);
+   hpull->SetMaximum(4);
+   hpull->GetYaxis()->SetNdivisions(4);
    hpull->GetXaxis()->SetTitleOffset(1.3);
    hpull->GetYaxis()->SetTitle("Pull");
    hpull->GetXaxis()->SetTitle("Lifetime [#mus]");
