@@ -7,6 +7,7 @@
 #include "RooRealVar.h"
 #include "RooGaussModel.h"
 #include "RooTruthModel.h"
+#include "RooAddPdf.h"
 #include "RooDecay.h"
 #include "RooPlot.h"
 #include "TH1.h"
@@ -15,7 +16,8 @@
 #include "RooHist.h"
 #include "TCanvas.h"
 #include "TStyle.h"
-
+#include "RooConstVar.h"
+#include "RooPolynomial.h"
 #include "TAxis.h"
 
 #include "TRootCanvas.h"
@@ -45,14 +47,22 @@ void MuLife()
    TTree *tree = new TTree("tree", "tree");
    tree->ReadFile(fname, "x/D:y");
 
+   TTree *data_tree = new TTree("data tree", "tree of acquired data");
+
    Int_t N = tree->GetEntries();
 
    //---------- Tree Branches -------//
    Double_t time;
    Double_t channel;
+   Double_t time_start;
+   Double_t time_stop;
+   Double_t effective_time;
    tree->SetBranchAddress("x", &channel);
    tree->SetBranchAddress("y", &time);
-   auto min=0.8;
+   data_tree->Branch("start",&time_start);
+   data_tree->Branch("stop",&time_stop);
+   data_tree->Branch("eff_time",&effective_time);
+   auto min=1.;
    auto max=30.;
    auto bins=30;
    //--------- Define Histrogram -----//
@@ -75,10 +85,12 @@ void MuLife()
       if(channel ==1){
          auto ttemp=time;
          h1->Fill(ttemp);
+         //data_tree->Fill();
       }
       if (channel == 2)
       {
          auto t2 = time;
+         
          auto channel2= channel;
          tree->GetEntry(i - 1);
          auto t1 = time;
@@ -90,15 +102,22 @@ void MuLife()
          //h1->Fill(t1);
          h2->Fill(t2);
          if(channel2==2&&channel1==1) {
-         auto decaytime = (t2 - t1) * pow(10, 6);
+            time_start=t1;
+            time_stop=t2;
+            auto decaytime = (t2 - t1) * pow(10, 6);
          if(decaytime<0) {
             decaytime=decaytime+tmax;
             if(t1>680&&t2<70) decaytime=decaytime-tmax+tmaxx;
          }
-         if(decaytime<max&&decaytime>min) h->Fill(decaytime);
+         if(decaytime<max&&decaytime>min) {
+            h->Fill(decaytime);
+            effective_time=decaytime;
+            data_tree->Fill();
+         }
          }
       }
    }
+
    auto c = new TCanvas("c", "rawhist", 950, 800);
    gPad->SetLogy();
    h->Draw();
@@ -118,9 +137,14 @@ void MuLife()
    //-----------------------------BLOCK 2-------------------------------//
    //-------- Constructing the models to be used for fitting -----------//
 
+   RooRealVar start("start","start time",0,690);
+   RooRealVar stop("stop","stop time",0,690);
+
    //-----Define variable (time) and import histogram ---------//
    RooRealVar t("t", "time [microsec]", 0, 30);
    RooDataHist rh("rh", "rh" ,t , Import(*h));
+   RooDataSet raw_data("raw_data","columnar dataset of t1 and t2",data_tree,RooArgSet(start,stop));
+   //RooDataSet data();
 
    //-------lifetime variable---------//
    RooRealVar tau("tau", "mean life of muon", 2.2, 1.5, 3.5);
@@ -146,8 +170,9 @@ void MuLife()
    RooRealVar tauback("tauback","background constant",100,10,100000);
 
    //-------Resolution function for background-------------//
-   RooDecay background("background","background exponential",t,tauback,tm1, RooDecay::SingleSided);
-
+   //RooDecay background("background","background exponential",t,tauback,tm1, RooDecay::SingleSided);
+   //RooConstVar a0("a0","constant background",5);
+   RooPolynomial background("background","background polynomial",t,RooArgList());
 
    //-----------final pdf-------------//
    //RooDecay model = decay_tm;
@@ -160,7 +185,7 @@ void MuLife()
    //------------------------BLOCK 3---------------------------//
    //------------------ Fiting and drawing --------------------//
 
-   RooFitResult *fitResult = model.fitTo(rh, RecoverFromUndefinedRegions(1), 
+   RooFitResult *fitResult = model.fitTo(rh,
                                              Verbose(false), Warnings(false), Save(), 
                                              PrintEvalErrors(-1), PrintLevel(-1));
    //--------- print result on terminal -------//
@@ -208,7 +233,7 @@ void MuLife()
    //------------Bellurie (Fuso cc)------------//
    xframe->GetYaxis()->SetTitleOffset(1.5);
    xframe->GetXaxis()->SetTitleSize(0);
-   //pad1->SetLogy();
+   pad1->SetLogy();
    //xframe->SetMinimum(0.001);
    xframe->Draw();
 
