@@ -1,45 +1,23 @@
 #include "TTree.h"
-#include "TString.h"
-#include "ROOT/RDataFrame.hxx"
-#include "ROOT/RVec.hxx"
-#include <stdio.h>
-#include "math.h"
-#include "RooRealVar.h"
-#include "RooGaussModel.h"
-#include "RooTruthModel.h"
-#include "RooAddPdf.h"
-#include "RooDecay.h"
-#include "RooPlot.h"
 #include "TH1.h"
-#include "RooFitResult.h"
-#include "RooDataHist.h"
-#include "RooHist.h"
+#include <iostream>
 #include "TCanvas.h"
-#include "TStyle.h"
-#include "RooConstVar.h"
-#include "RooPolynomial.h"
-#include "TAxis.h"
 
-#include "TRootCanvas.h"
-#include <string.h>
-#include <filesystem>
 
-using namespace RooFit;
-
-void MuLife()
+void sistematico()
 {
    //----------------------BLOCK 1------------------------//
    //------------------ Data Reading ---------------------//
 
    //---------- Define string for data handling----------//
-   TString path_to_file="Dati/MuLife/";
+   TString path_to_file="Dati/Sistematico/";
 
-   TString fname = path_to_file+"run1_23feb23.dat";
+   TString fname = path_to_file+"risoluzione_28feb23.dat";
 
-   TString hname = "Run1long_tm_backcost_0830_mediumbin";
-   TString info = "Run1 23/02/23 116h FAULTY";
+   TString hname = "Risoluzione";
+   TString info = "28/02/23";
    //---------histogram name for fit plot----------//
-   TString ffit = "MuLife, "+info+" (truth model + background) 0.8-30";
+   TString ffit = "Sistematico, "+info+" 50 ms";
 
    // auto df = ROOT::RDF::MakeCsvDataFrame(fname,false,'\t');
 
@@ -54,23 +32,16 @@ void MuLife()
    //---------- Tree Branches -------//
    Double_t time;
    Double_t channel;
-   Double_t time_start;
-   Double_t time_stop;
    Double_t effective_time;
    tree->SetBranchAddress("x", &channel);
    tree->SetBranchAddress("y", &time);
-   data_tree->Branch("start",&time_start);
-   data_tree->Branch("stop",&time_stop);
    data_tree->Branch("eff_time",&effective_time);
-   auto min=0.8;
-   auto max=30.;
-   auto bins=20;
+   auto min=85.;
+   auto max=87.;
+   auto bins=100;
    //--------- Define Histrogram -----//
    TH1D *h = new TH1D("h", hname, bins, min, max);
 
-   TH1D *h1 = new TH1D("h1", "t1 distribution", 100, 0, 750);
-
-   TH1D *h2 = new TH1D("h", "t2 distribution", 100, 0, 750);
 
 
 
@@ -79,68 +50,37 @@ void MuLife()
    //-- Fill Histogram with stop-start signal--//
    auto tmax=70;
    auto tmaxx=690;
-   for (Int_t i = 0; i < N; i++)
+   for (Int_t i = 1; i < N; i++)
    {
-      tree->GetEntry(i);
-      if(channel ==1){
-         auto ttemp=time;
-         h1->Fill(ttemp);
-         //data_tree->Fill();
-      }
-      if (channel == 2)
-      {
-         auto t2 = time;
-         
-         auto channel2= channel;
+         tree->GetEntry(i);
+         auto t2= time;
          tree->GetEntry(i - 1);
-         auto t1 = time;
-         auto channel1=channel;
-         /*if(channel2-channel1!=1){
-         std::cout<< "Channel1: "<< channel1 << std::endl;
-         std::cout<< "Channel2: "<< channel2 << std::endl;
-         }*/
-         //h1->Fill(t1);
-         h2->Fill(t2);
-         if(channel2==2&&channel1==1) {
-            time_start=t1;
-            time_stop=t2;
-            auto decaytime = (t2 - t1) * pow(10, 6);
-         if(decaytime<0) {
-            decaytime=decaytime+tmax;
-            if(t1>620&&t2<70) decaytime=decaytime-tmax+tmaxx;
-         }
-         if(decaytime<max&&decaytime>min) {
-            h->Fill(decaytime);
+         auto t1 = time; 
+         auto decaytime = (t2 - t1) * pow(10, 3);
+         if(decaytime<0&&t1<620) {
             effective_time=decaytime;
             data_tree->Fill();
+            h->Fill(decaytime);
+         }
+         if(decaytime<0&&t1>620) {
+            std::cout << "Big step: " << decaytime << std::endl;
          }
          }
-      }
-   }
+      
+   
 
    auto c = new TCanvas("c", "rawhist", 950, 800);
    gPad->SetLogy();
    h->GetYaxis()->SetTitle("Counts");
-   h->GetXaxis()->SetTitle("Time [#mus]");
-   h->SetTitle("Raw Counts "+info);
+   h->GetXaxis()->SetTitle("Time [ms]");
+   h->SetTitle("Estimate of short jump "+info);
    h->Draw();
-   auto ch1 = new TCanvas("ch1", "t1 distribution", 950, 800);
-   h1->GetYaxis()->SetTitle("Counts");
-   h1->GetXaxis()->SetTitle("Time [s]");
-   h1->SetTitle("Counts CH1 "+info);
-   h1->Draw();
-   
-   auto ch2 = new TCanvas("ch2", "t2 distribution", 950, 800);
-   h2->GetYaxis()->SetTitle("Counts");
-   h2->GetXaxis()->SetTitle("Time [s]");
-   h2->SetTitle("Counts CH2 "+info);
-   h2->Draw();
 
 
 
 
 
-
+   /*
    //-----------------------------BLOCK 2-------------------------------//
    //-------- Constructing the models to be used for fitting -----------//
 
@@ -270,5 +210,6 @@ void MuLife()
    TString ffit_plot = "./Plots/MuLife/Run1/" + hname + "_Fit" + ".pdf";
 
    c1->SaveAs(ffit_plot);
+   */
    return;
 }
