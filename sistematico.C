@@ -3,6 +3,8 @@
 #include <iostream>
 #include "TCanvas.h"
 #include "TGraph.h"
+#include "TPaveText.h"
+#include "TArrow.h"
 
 void sistematico()
 {
@@ -12,10 +14,12 @@ void sistematico()
    //---------- Define string for data handling----------//
    TString path_to_file="Dati/Sistematico/";
 
-   TString fname = path_to_file+"risoluzione_28feb.dat";
+   TString fname = path_to_file+"sist_1mar23.dat";
 
    TString hname = "Risoluzione";
    TString date = "28/02/23";
+   TString authors = "G. Cordova, A. Giani";
+   TString acqtime = "10 min";
    //---------histogram name for fit plot----------//
    TString ffit = "Sistematico, "+date+" 50 ms";
 
@@ -36,9 +40,9 @@ void sistematico()
    tree->SetBranchAddress("x", &channel);
    tree->SetBranchAddress("y", &time);
    data_tree->Branch("eff_time",&effective_time);
-   auto min=-85.;
-   auto max=-87.;
-   auto bins=3;
+   auto min=195;
+   auto max=230;
+   auto bins=35;
    //--------- Define Histrogram -----//
    TH1D *h = new TH1D("h", hname, bins, min, max);
 
@@ -59,12 +63,12 @@ void sistematico()
          if(channel==1){
          auto t1 = time; 
          auto decaytime = (t2 - t1);
-         effective_time=decaytime;
+         effective_time=decaytime*pow(10,9);
          if(decaytime<0&&t1<620) {
-            effective_time=(decaytime+tmax)*pow(10,6);
+            effective_time=(decaytime+tmax)*pow(10,9);
          }
          if(decaytime<0&&t2<90&&t1>620) {
-            effective_time=(decaytime+tmaxx)*pow(10,6);
+            effective_time=(decaytime+tmaxx)*pow(10,9);
          }
          data_tree->Fill();
          h->Fill(effective_time);
@@ -72,18 +76,29 @@ void sistematico()
       }
    }
       
-   
+   std::cout <<"Overflow: " << h->GetBinContent(N+1) << std::endl;
+   std::cout <<"Underflow: " << h->GetBinContent(0) << std::endl;
 
    auto c = new TCanvas("c", "raw", 950, 800);
    //gPad->SetLogy();
-   //h->GetYaxis()->SetTitle("Counts");
-   //h->GetXaxis()->SetTitle("Time [ms]");
-   //h->SetTitle("Estimate of short jump "+info);
-   //h->Draw();
+   h->GetYaxis()->SetTitle("Counts");
+   h->GetXaxis()->SetTitle("Time [ns]");
+   //h->GetXaxis()->SetNdivisions(-502);
 
+   h->SetTitle("Preliminary histogram for a pulse of 180 ns");
+   h->Draw();
+   auto tp = new TPaveText(197,5000,205,6300);
+   tp->AddText("MuLife");
+   tp->AddText(authors);
+   tp->AddText(date+" "+acqtime);
+   tp->Draw();
+   TArrow *ar = new TArrow(200,400,200,1500,0.02,"<|");
 
-
-
+   auto tm = new TText(198,1700,"6% of signal");
+   tm->SetTextSize(21);
+   tm->SetTextFont(43);
+   ar->Draw();
+   tm->Draw();
 
    /*
    //-----------------------------BLOCK 2-------------------------------//
