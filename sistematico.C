@@ -2,7 +2,7 @@
 #include "TH1.h"
 #include <iostream>
 #include "TCanvas.h"
-
+#include "TGraph.h"
 
 void sistematico()
 {
@@ -12,12 +12,12 @@ void sistematico()
    //---------- Define string for data handling----------//
    TString path_to_file="Dati/Sistematico/";
 
-   TString fname = path_to_file+"risoluzione_28feb23.dat";
+   TString fname = path_to_file+"risoluzione_28feb.dat";
 
    TString hname = "Risoluzione";
-   TString info = "28/02/23";
+   TString date = "28/02/23";
    //---------histogram name for fit plot----------//
-   TString ffit = "Sistematico, "+info+" 50 ms";
+   TString ffit = "Sistematico, "+date+" 50 ms";
 
    // auto df = ROOT::RDF::MakeCsvDataFrame(fname,false,'\t');
 
@@ -36,9 +36,9 @@ void sistematico()
    tree->SetBranchAddress("x", &channel);
    tree->SetBranchAddress("y", &time);
    data_tree->Branch("eff_time",&effective_time);
-   auto min=85.;
-   auto max=87.;
-   auto bins=100;
+   auto min=-85.;
+   auto max=-87.;
+   auto bins=3;
    //--------- Define Histrogram -----//
    TH1D *h = new TH1D("h", hname, bins, min, max);
 
@@ -48,33 +48,38 @@ void sistematico()
 
 
    //-- Fill Histogram with stop-start signal--//
-   auto tmax=70;
-   auto tmaxx=690;
-   for (Int_t i = 1; i < N; i++)
+   auto tmax=85.8485;
+   auto tmaxx=687.144;
+   for (Int_t i = 0; i < N; i++)
    {
-         tree->GetEntry(i);
-         auto t2= time;
+      tree->GetEntry(i);
+      if(channel==2){
+         auto t2 = time;
          tree->GetEntry(i - 1);
+         if(channel==1){
          auto t1 = time; 
-         auto decaytime = (t2 - t1) * pow(10, 3);
+         auto decaytime = (t2 - t1);
+         effective_time=decaytime;
          if(decaytime<0&&t1<620) {
-            effective_time=decaytime;
-            data_tree->Fill();
-            h->Fill(decaytime);
+            effective_time=(decaytime+tmax)*pow(10,6);
          }
-         if(decaytime<0&&t1>620) {
-            std::cout << "Big step: " << decaytime << std::endl;
+         if(decaytime<0&&t2<90&&t1>620) {
+            effective_time=(decaytime+tmaxx)*pow(10,6);
          }
+         data_tree->Fill();
+         h->Fill(effective_time);
          }
+      }
+   }
       
    
 
-   auto c = new TCanvas("c", "rawhist", 950, 800);
-   gPad->SetLogy();
-   h->GetYaxis()->SetTitle("Counts");
-   h->GetXaxis()->SetTitle("Time [ms]");
-   h->SetTitle("Estimate of short jump "+info);
-   h->Draw();
+   auto c = new TCanvas("c", "raw", 950, 800);
+   //gPad->SetLogy();
+   //h->GetYaxis()->SetTitle("Counts");
+   //h->GetXaxis()->SetTitle("Time [ms]");
+   //h->SetTitle("Estimate of short jump "+info);
+   //h->Draw();
 
 
 
