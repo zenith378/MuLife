@@ -62,23 +62,23 @@ void MuLife()
    data_tree->Branch("start",&time_start);
    data_tree->Branch("stop",&time_stop);
    data_tree->Branch("eff_time",&effective_time);
-   auto min=0.8;
-   auto max=30.;
-   auto bins=20;
+   auto min=0.7;
+   auto max=29.;
+   auto bins=30;
    //--------- Define Histrogram -----//
    TH1D *h = new TH1D("h", hname, bins, min, max);
 
-   TH1D *h1 = new TH1D("h1", "t1 distribution", 100, 0, 750);
+   TH1D *h1 = new TH1D("h1", "t1 distribution", 100, 0, 700);
 
-   TH1D *h2 = new TH1D("h", "t2 distribution", 100, 0, 750);
+   TH1D *h2 = new TH1D("h", "t2 distribution", 100, 0, 700);
 
 
 
 
 
    //-- Fill Histogram with stop-start signal--//
-   auto tmax=70;
-   auto tmaxx=690;
+   auto tmax=85.8485;
+   auto tmaxx=687.144;
    for (Int_t i = 0; i < N; i++)
    {
       tree->GetEntry(i);
@@ -104,14 +104,15 @@ void MuLife()
          if(channel2==2&&channel1==1) {
             time_start=t1;
             time_stop=t2;
-            auto decaytime = (t2 - t1) * pow(10, 6);
+            auto decaytime = (t2 - t1);
+            effective_time=decaytime * pow(10, 6);
          if(decaytime<0) {
             decaytime=decaytime+tmax;
             if(t1>620&&t2<70) decaytime=decaytime-tmax+tmaxx;
          }
-         if(decaytime<max&&decaytime>min) {
-            h->Fill(decaytime);
-            effective_time=decaytime;
+         if(decaytime*pow(10,6)<max&&decaytime*pow(10,6)>min) {
+            effective_time=decaytime*pow(10,6);
+            h->Fill(effective_time);
             data_tree->Fill();
          }
          }
@@ -157,7 +158,7 @@ void MuLife()
    RooRealVar tau("tau", "mean life of muon", 2.2, 1.5, 3.);
 
    //----------Resolution function for signal--------------//
-   RooRealVar fsig("fsig", "signal component",0.5,0.2,0.99);
+   RooRealVar fsig("fsig", "signal component",0.5,0.01,0.99);
    //--------------delta----------------//
    // Build a truth resolution model (delta function)
    RooTruthModel tm1("tm", "truth model", t);
@@ -166,8 +167,8 @@ void MuLife()
    RooDecay decay_tm("decay_tm", "decay", t, tau, tm1, RooDecay::SingleSided);
 
    //--------------gauss1---------------//
-   RooRealVar bias1("bias1", "bias1", 0);
-   RooRealVar sigma1("sigma1", "sigma1", 1);
+   RooRealVar bias1("bias1", "bias1", 0.04);
+   RooRealVar sigma1("sigma1", "sigma1", 0.0004);
    RooGaussModel gm1("gm1", "gauss model 1", t, bias1, sigma1);
 
    // Construct decay(t) (x) gauss1(t)
@@ -183,7 +184,7 @@ void MuLife()
 
    //-----------final pdf-------------//
    //RooDecay model = decay_tm;
-   RooAddPdf model("model","signal and background",RooArgList(decay_tm,background),RooArgList(fsig));
+   RooAddPdf model("model","signal and background",RooArgList(decay_gm1,background),RooArgList(fsig));
 
 
 
@@ -192,7 +193,7 @@ void MuLife()
    //------------------------BLOCK 3---------------------------//
    //------------------ Fiting and drawing --------------------//
 
-   RooFitResult *fitResult = model.fitTo(rh,
+   RooFitResult *fitResult = model.fitTo(rh,//IntegrateBins(0.001),
                                              Verbose(false), Warnings(false), Save(), 
                                              PrintEvalErrors(-1), PrintLevel(-1));
    //--------- print result on terminal -------//
@@ -267,8 +268,8 @@ void MuLife()
 
 
    //---------- Save Canvas ---------------//
-   TString ffit_plot = "./Plots/MuLife/Run1/" + hname + "_Fit" + ".pdf";
+   //TString ffit_plot = "./Plots/MuLife/Run1/" + hname + "_Fit" + ".pdf";
 
-   c1->SaveAs(ffit_plot);
+   //c1->SaveAs(ffit_plot);
    return;
 }
