@@ -3,6 +3,9 @@
 #include <iostream>
 #include "TCanvas.h"
 #include "TGraph.h"
+#include "TArrow.h"
+#include "TText.h"
+#include "TPaveText.h"
 
 void sawstructure()
 {

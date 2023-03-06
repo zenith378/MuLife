@@ -26,10 +26,10 @@ void sistematico()
    //---------- Define string for data handling----------//
    TString path_to_file="Dati/Sistematico/";
 
-   TString fname = path_to_file+"sist_1mar23.dat";
+   TString fname = path_to_file+"sis_2mar23.dat";
 
    TString hname = "Risoluzione";
-   TString date = "28/02/23";
+   TString date = "02/03/23";
    TString authors = "G. Cordova, A. Giani";
    TString acqtime = "10 min";
    //---------histogram name for fit plot----------//
@@ -52,9 +52,9 @@ void sistematico()
    tree->SetBranchAddress("x", &channel);
    tree->SetBranchAddress("y", &time);
    data_tree->Branch("eff_time",&effective_time);
-   auto min=195;
-   auto max=230;
-   auto bins=35;
+   auto min=1.78;
+   auto max=1.9;
+   auto bins=6;
    //--------- Define Histrogram -----//
    TH1D *h = new TH1D("h", hname, bins, min, max);
 
@@ -75,12 +75,12 @@ void sistematico()
          if(channel==1){
          auto t1 = time; 
          auto decaytime = (t2 - t1);
-         effective_time=decaytime*pow(10,9);
+         effective_time=decaytime*pow(10,6);
          if(decaytime<0) {
-            effective_time=(decaytime+tmax)*pow(10,9);
+            effective_time=(decaytime+tmax)*pow(10,6);
          }
          if(decaytime<0&&t2<90&&t1>620) {
-            effective_time=(decaytime-tmax+tmaxx)*pow(10,9);
+            effective_time=(decaytime-tmax+tmaxx)*pow(10,6);
          }
          data_tree->Fill();
          h->Fill(effective_time);
