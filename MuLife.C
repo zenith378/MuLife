@@ -25,6 +25,7 @@
 #include "TPaveText.h"
 #include <string.h>
 #include <filesystem>
+#include "RooNumConvPdf.h"
 #include "TLatex.h"
 
 using namespace RooFit;
@@ -72,7 +73,7 @@ void MuLife()
    data_tree->Branch("start", &time_start);
    data_tree->Branch("stop", &time_stop);
    data_tree->Branch("eff_time", &effective_time);
-   auto min = 0.65;
+   auto min = 0.45;
    auto max = 20.;
    auto bins = 20;
    TString ffit;
@@ -115,7 +116,7 @@ void MuLife()
          {
             time_start = t1;
             time_stop = t2;
-            auto decaytime = (t2 - t1);
+            auto decaytime = (t2 - t1)+40*pow(10,-9);
             effective_time = decaytime * pow(10, 6);
             if (decaytime < 0)
             {
@@ -165,7 +166,7 @@ void MuLife()
    // RooDataSet data();
 
    //-------lifetime variable---------//
-   RooRealVar tau("tau", "mean life of muon", 2.2, 0.1, 10.);
+   RooRealVar tau("tau", "mean life of muon", 2.2, 0.001, 10.);
 
    //----------Resolution function for signal--------------//
    RooRealVar fsig("fsig", "signal component", 0.6, 0.01, 0.99);
@@ -192,9 +193,10 @@ void MuLife()
    // RooConstVar a0("a0","constant background",5);
    RooPolynomial background("background", "background polynomial", t, RooArgList());
 
+   RooNumConvPdf back_conv("back_conv","background with gaus",t,background,gm1);
    //-----------final pdf-------------//
    // RooDecay model = decay_tm;
-   RooAddPdf model("model", "signal and background", RooArgList(decay_gm1, background), RooArgList(fsig));
+   RooAddPdf model("model", "signal and background", RooArgList(decay_tm, background), RooArgList(fsig));
 
    model.fixAddCoefNormalization(RooArgSet(t));
    model.fixCoefNormalization(RooArgSet(t));
@@ -214,7 +216,7 @@ void MuLife()
    rh.plotOn(xframe, MarkerStyle(6), MarkerSize(1)); // plot data
 
    model.plotOn(xframe, Components(background), LineColor(41), LineStyle(kDashed));
-   model.plotOn(xframe, Components(decay_gm1), LineColor(30), LineStyle(9));
+   model.plotOn(xframe, Components(decay_tm), LineColor(30), LineStyle(9));
 
    model.plotOn(xframe, LineWidth(2), LineColor(kRed)); // plot fitted pdf
 

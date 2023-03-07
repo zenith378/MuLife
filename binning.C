@@ -71,7 +71,7 @@ void binning()
 
    auto max = 20.;
    auto bins = 5;
-   auto min = 1.;
+   auto min = .45;
    std::vector<double> bins_vec;
    std::vector<double> tau_fit;
    std::vector<double> err;

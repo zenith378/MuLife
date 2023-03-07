@@ -48,6 +48,7 @@ void cut()
    RooRealVar fsig("fsig", "signal component", 0.6, 0.01, 0.99);
    //--------------delta----------------//
    // Build a truth resolution model (delta function)
+   RooTruthModel tm("tm", "truth model", t);
 
    //--------------gauss1---------------//
    RooRealVar bias1("bias1", "bias1", 0.039);
@@ -55,7 +56,7 @@ void cut()
    RooGaussModel gm1("gm1", "gauss model 1", t, bias1, sigma1);
 
    // Construct decay(t) (x) gauss1(t)
-   RooDecay decay_gm1("decay_gm1", "decay", t, tau, gm1, RooDecay::SingleSided);
+   RooDecay decay_gm1("decay_gm1", "decay", t, tau, tm, RooDecay::SingleSided);
 
    //-------Resolution function for background-------------//
    // RooDecay background("background","background exponential",t,tauback,tm1, RooDecay::SingleSided);
@@ -141,7 +142,7 @@ void cut()
             {
                time_start = t1;
                time_stop = t2;
-               auto decaytime = (t2 - t1);
+               auto decaytime = (t2 - t1)+40*pow(10,-9);
                effective_time = decaytime * pow(10, 6);
                if (decaytime < 0)
                {
