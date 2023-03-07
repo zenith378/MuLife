@@ -72,9 +72,9 @@ void MuLife()
    data_tree->Branch("start", &time_start);
    data_tree->Branch("stop", &time_stop);
    data_tree->Branch("eff_time", &effective_time);
-   auto min = 0.45;
+   auto min = 0.65;
    auto max = 20.;
-   auto bins = 11;
+   auto bins = 20;
    TString ffit;
    ffit.Form("MuLife, " + info + " (gaus conv + background) %.2f-%.0f", min, max);
 
