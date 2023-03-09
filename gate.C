@@ -30,21 +30,20 @@
 
 using namespace RooFit;
 
-void MuLife()
+void gate()
 {
    //----------------------BLOCK 1------------------------//
    //------------------ Data Reading ---------------------//
 
    //---------- Define string for data handling----------//
-   TString path_to_file = "Dati/MuLife/";
+   TString path_to_file = "Dati/gate/";
 
    TString fname = path_to_file + "22febbraio2023.dat";
-   TString fname1 = path_to_file + "run1_23feb23.dat";
-   TString fname2 = path_to_file + "run4_8mar.dat";
+
 
    TString hname = "Run1long_tm_backcost_0830_mediumbin";
-   TString info = "";
-   TString date = "23/03/23";
+   TString info = "calibration at 1.68 #mus";
+   //TString date = "/03/23";
    TString authors = "G. Cordova, A. Giani";
    TString acqtime = "14.5h FAULTY";
    //---------histogram name for fit plot----------//
@@ -55,7 +54,7 @@ void MuLife()
    Int_t currentIgnoreLevel = gErrorIgnoreLevel;
    gErrorIgnoreLevel = kError;
    TTree *tree = new TTree("tree", "tree");
-   tree->ReadFile(fname2, "x/D:y");
+   tree->ReadFile(fname, "x/D:y");
    //tree->ReadFile(fname1);
    //tree->ReadFile(fname2);
    gErrorIgnoreLevel = currentIgnoreLevel;
@@ -77,7 +76,7 @@ void MuLife()
    data_tree->Branch("eff_time", &effective_time);
    auto min = 0.1;
    auto max = 20.;
-   auto bins = 1000;
+   auto bins = 20;
    TString ffit;
    ffit.Form("MuLife, " + info + " (tm+ background) %.2f-%.0f", min, max);
 
@@ -143,17 +142,7 @@ void MuLife()
    h->GetXaxis()->SetTitle("Time [#mus]");
    h->SetTitle("Raw Counts " + info);
    h->Draw();
-   auto ch1 = new TCanvas("ch1", "t1 distribution", 950, 800);
-   h1->GetYaxis()->SetTitle("Counts");
-   h1->GetXaxis()->SetTitle("Time [s]");
-   h1->SetTitle("Counts CH1 " + info);
-   h1->Draw();
 
-   auto ch2 = new TCanvas("ch2", "t2 distribution", 950, 800);
-   h2->GetYaxis()->SetTitle("Counts");
-   h2->GetXaxis()->SetTitle("Time [s]");
-   h2->SetTitle("Counts CH2 " + info);
-   h2->Draw();
 
    //-----------------------------BLOCK 2-------------------------------//
    //-------- Constructing the models to be used for fitting -----------//
@@ -168,10 +157,10 @@ void MuLife()
    // RooDataSet data();
 
    //-------lifetime variable---------//
-   RooRealVar tau("tau", "mean life of muon", 2.2, 0.001, 10.);
+   RooRealVar tau("tau", "mean life of muon", 1.680, 0.001, 10.);
 
    //----------Resolution function for signal--------------//
-   RooRealVar fsig("fsig", "signal component", 0.6, 0.01, 0.99);
+   RooRealVar fsig("fsig", "signal component", 0.001, 0.00001, 0.1);
    //--------------delta----------------//
    // Build a truth resolution model (delta function)
    RooTruthModel tm1("tm", "truth model", t);
@@ -305,7 +294,7 @@ void MuLife()
    tp->AddText(authors);
    //tp->AddText("Run0 22/02/23 26h");
    //tp->AddText("Run1 23/02/23 115h FAULTY");
-   tp->AddText("Run4 08/03/23 26h");
+   tp->AddText("Cal1 08/03/23 10min");
    tp->Draw();
 
    TLatex chi;
