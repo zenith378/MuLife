@@ -86,7 +86,7 @@ void calibration()
       h->Fill(ch0);
    }
    auto c = new TCanvas("c", "rawhist", 950, 800);
-   gPad->SetLogy();
+   //gPad->SetLogy();
    h->SetBinErrorOption(TH1::EBinErrorOpt::kPoisson);
    h->GetYaxis()->SetTitle("Counts");
    h->GetXaxis()->SetTitle("Voltage [V]");
