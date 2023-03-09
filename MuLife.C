@@ -40,12 +40,13 @@ void MuLife()
 
    TString fname = path_to_file + "22febbraio2023.dat";
    TString fname1 = path_to_file + "run1_23feb23.dat";
+   TString fname2 = path_to_file + "run3_7mar23.dat";
 
    TString hname = "Run1long_tm_backcost_0830_mediumbin";
-   TString info = "Run0+ Run1 (FAULTY)";
-   TString date = "23/02/23";
+   TString info = "Run2";
+   TString date = "23/03/23";
    TString authors = "G. Cordova, A. Giani";
-   TString acqtime = "116h FAULTY";
+   TString acqtime = "14.5h FAULTY";
    //---------histogram name for fit plot----------//
 
    // auto df = ROOT::RDF::MakeCsvDataFrame(fname,false,'\t');
@@ -242,6 +243,7 @@ void MuLife()
    std::cout << "Baker-Cousins chi2 = " << chi2_BC << " Neyman chi2 " << chi2_N << std::endl;
 
    //-------------plot parameters on figure----------------//
+   
    RooArgSet display(tau, tauback, fsig); // parameters to display on figure
    model.paramOn(xframe,
                  Parameters(display),
@@ -301,7 +303,8 @@ void MuLife()
    tp->AddText("MuLife");
    tp->AddText(authors);
    tp->AddText("Run0 22/02/23 26h");
-   tp->AddText("Run1 "+date + " " + acqtime);
+   tp->AddText("Run1 23/02/23 115h FAULTY");
+   //tp->AddText("Run3 07/03/23 14.5h");
    tp->Draw();
 
    TLatex chi;
