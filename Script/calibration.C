@@ -36,9 +36,10 @@ void calibration()
    //------------------ Data Reading ---------------------//
 
    //---------- Define string for data handling----------//
-   TString path_to_file = "Dati/";
+   TString path_to_file = "../Dati/Energy/";
 
    TString fname = path_to_file + "cal_8mar23.dat";
+   TString fname1 = path_to_file + "cal_9mar23.dat";
 
 
    TString hname = "h";
@@ -55,6 +56,7 @@ void calibration()
    gErrorIgnoreLevel = kError;
    TTree *tree = new TTree("tree", "tree");
    tree->ReadFile(fname, "x/D:y/D:z");
+   tree->ReadFile(fname1);
    gErrorIgnoreLevel = currentIgnoreLevel;
 
    Int_t N = tree->GetEntries();
@@ -68,7 +70,7 @@ void calibration()
    tree->SetBranchAddress("y", &ch0);
    tree->SetBranchAddress("z", &ch1);
 
-   auto min = 0.;
+   auto min = 0.1;
    auto max = 2.5;
    auto bins = 100;
    TString ffit;
@@ -95,7 +97,7 @@ void calibration()
    auto tp = new TPaveText(0.15, 0.7, 0.35, 0.85, "NDC");
    tp->AddText("MuLife");
    tp->AddText(authors);
-   tp->AddText("08/03/23 15min");
+   tp->AddText("09/03/23 40min");
    //tp->AddText("Run3 07/03/23 14.5h");
    tp->Draw();
 

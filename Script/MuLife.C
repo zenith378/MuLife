@@ -36,7 +36,7 @@ void MuLife()
    //------------------ Data Reading ---------------------//
 
    //---------- Define string for data handling----------//
-   TString path_to_file = "Dati/MuLife/";
+   TString path_to_file = "../Dati/MuLife/";
 
    TString fname = path_to_file + "22febbraio2023.dat";
    TString fname1 = path_to_file + "run1_23feb23.dat";

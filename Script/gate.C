@@ -36,7 +36,7 @@ void gate()
    //------------------ Data Reading ---------------------//
 
    //---------- Define string for data handling----------//
-   TString path_to_file = "Dati/Gate/";
+   TString path_to_file = "../Dati/Gate/";
 
    TString fname = path_to_file + "1680_9mar23.dat";
 

@@ -27,12 +27,12 @@
 #include <filesystem>
 #include "TLatex.h"
 #include <vector>
-#include "TGraphErrors.h"
+#include "TGraph.h"
 #include "TLine.h"
 
 using namespace RooFit;
 
-void binning()
+void cut()
 {
 
    //-----------------------------BLOCK 2-------------------------------//
@@ -48,6 +48,7 @@ void binning()
    RooRealVar fsig("fsig", "signal component", 0.6, 0.01, 0.99);
    //--------------delta----------------//
    // Build a truth resolution model (delta function)
+   RooTruthModel tm("tm", "truth model", t);
 
    //--------------gauss1---------------//
    RooRealVar bias1("bias1", "bias1", 0.039);
@@ -55,7 +56,7 @@ void binning()
    RooGaussModel gm1("gm1", "gauss model 1", t, bias1, sigma1);
 
    // Construct decay(t) (x) gauss1(t)
-   RooDecay decay_gm1("decay_gm1", "decay", t, tau, gm1, RooDecay::SingleSided);
+   RooDecay decay_gm1("decay_gm1", "decay", t, tau, tm, RooDecay::SingleSided);
 
    //-------Resolution function for background-------------//
    // RooDecay background("background","background exponential",t,tauback,tm1, RooDecay::SingleSided);
@@ -70,20 +71,18 @@ void binning()
    model.fixCoefNormalization(RooArgSet(t));
 
    auto max = 20.;
-   auto bins = 5;
-   auto min = .45;
-   std::vector<double> bins_vec;
+   auto bins = 20;
+   auto min = 0.1;
+   std::vector<double> chi_vec;
+   std::vector<double> t_min;
    std::vector<double> tau_fit;
-   std::vector<double> err;
-   std::vector<double> err_x;
-   Int_t entries;
-   while (bins < 30)
+   while (min < 1)
    {
       //----------------------BLOCK 1------------------------//
       //------------------ Data Reading ---------------------//
 
       //---------- Define string for data handling----------//
-      TString path_to_file = "Dati/MuLife/";
+      TString path_to_file = "../Dati/MuLife/";
 
       TString fname = path_to_file + "22febbraio2023.dat";
       TString fname1 = path_to_file + "run1_23feb23.dat";
@@ -143,7 +142,7 @@ void binning()
             {
                time_start = t1;
                time_stop = t2;
-               auto decaytime = (t2 - t1);
+               auto decaytime = (t2 - t1)+40*pow(10,-9);
                effective_time = decaytime * pow(10, 6);
                if (decaytime < 0)
                {
@@ -160,7 +159,7 @@ void binning()
             }
          }
       }
-      entries=h->GetEntries();
+
       //------------------------BLOCK 3---------------------------//
       //------------------ Fiting and drawing --------------------//
       RooDataHist rh("rh", "rh", t, Import(*h));
@@ -175,9 +174,8 @@ void binning()
    RooArgList lf = fitResult->floatParsFinal();
    // covariant matrix
    TMatrixDSym cov = fitResult->covarianceMatrix();
-      Double_t tauu = static_cast<RooAbsReal &>(lf[1]).getVal();
-      Double_t err_tau = std::sqrt(cov[1][1]);
-   //std::cout << nsig1 << std::endl;
+      Double_t nsig1 = static_cast<RooAbsReal &>(lf[1]).getVal();
+   std::cout << nsig1 << std::endl;
 
       // compute Baker-Cousins chi2:
       // converting model to a TF1 and data to a TH1
@@ -193,37 +191,44 @@ void binning()
 
       double chi2_BC = h->Chisquare(f, "L"); // Baker-Cousins chi2
 
-      bins_vec.push_back(bins);
-      tau_fit.push_back(tauu);
-      err.push_back(err_tau);
-      err_x.push_back(0.5);
-      bins = bins + 1;
+      chi_vec.push_back(chi2_BC);
+      t_min.push_back(min);
+      min = min + 0.01;
    }
-   Int_t nvc = bins_vec.size();
-   Double_t *tt = &bins_vec[0];
-   Double_t *cc = &tau_fit[0];
-   Double_t *tt_err = &err[0];
-   Double_t *x_err = &err_x[0];
-
+   Int_t nvc = t_min.size();
+   Double_t *tt = &t_min[0];
+   Double_t *cc = &chi_vec[0];
    auto c = new TCanvas("chi", "chi", 950, 800);
-   auto g1 = new TGraphErrors(nvc, tt, cc,x_err,tt_err);
-   g1->SetTitle("Stability of fitted parameter for binning change;Number of bins;tau [#mus]");
+   auto g1 = new TGraph(nvc, tt, cc);
+   g1->SetTitle("#chi_{BC}^{2} vs time cut on first bin;time cut [#mus];#chi_{BC}^{2}");
    //g1->SetMinimum(0.);
-   auto tp = new TPaveText(0.6, 0.6, 0.85, 0.85, "NDC");
+   auto l1 = new TLine(0.03, 25.989, 1.05, 25.989);
+   auto l2 = new TLine(0.03, 28.869, 1.05, 28.869);
+   l1->SetLineColor(3);
+   l1->SetLineWidth(1);
+   l2->SetLineColor(kOrange);
+   l2->SetLineWidth(1);
+   auto cl1 = new TText(0.8, 23, "significativity 0.05");
+   cl1->SetTextSize(21);
+   cl1->SetTextFont(43);
+   cl1->SetTextColor(3);
+   auto cl2 = new TText(0.6, 30, "significativity 0.01");
+   cl2->SetTextSize(21);
+   cl2->SetTextFont(43);
+   cl2->SetTextColor(kOrange);
+   auto tp = new TPaveText(0.7, 90., 1., 160.);
    tp->AddText("MuLife");
-   tp->AddText("G. Cordova, A. Giani");
-   tp->AddText("Run0 22/02/23 26h");
-   tp->AddText("Run1 23/02/23 116h (FAULTY)");
-   TString entr_str;
-   entr_str.Form("Entries: %d",entries);
-   tp->AddText(entr_str);
-   tp->AddText("Cuts: 1 #mus < t < 20 #mus");
+   TString date = "06/03/23";
+   TString authors = "G. Cordova, A. Giani";
+   tp->AddText(authors);
+   tp->AddText("Run0+Run1 " + date);
+
+   c->SetLogy();
+   g1->Draw("AC*");
+   l1->Draw();
+   l2->Draw();
    tp->Draw();
-
-   //c->SetLogy();
-   g1->Draw("AP");
-
-   tp->Draw();
-
+   cl1->Draw();
+   cl2->Draw();
    return;
 }

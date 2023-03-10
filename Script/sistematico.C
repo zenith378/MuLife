@@ -24,7 +24,7 @@ void sistematico()
    //------------------ Data Reading ---------------------//
 
    //---------- Define string for data handling----------//
-   TString path_to_file="Dati/Sistematico/";
+   TString path_to_file="../Dati/Sistematico/";
 
    TString fname = path_to_file+"sis_2mar23.dat";
 
