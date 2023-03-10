@@ -55,8 +55,8 @@ void MuLife()
    Int_t currentIgnoreLevel = gErrorIgnoreLevel;
    gErrorIgnoreLevel = kError;
    TTree *tree = new TTree("tree", "tree");
-   tree->ReadFile(fname2, "x/D:y");
-   //tree->ReadFile(fname1);
+   tree->ReadFile(fname, "x/D:y");
+   tree->ReadFile(fname1);
    //tree->ReadFile(fname2);
    gErrorIgnoreLevel = currentIgnoreLevel;
 
@@ -75,8 +75,8 @@ void MuLife()
    data_tree->Branch("start", &time_start);
    data_tree->Branch("stop", &time_stop);
    data_tree->Branch("eff_time", &effective_time);
-   auto min = 0.1;
-   auto max = 1.;
+   auto min = 0.45;
+   auto max = 20.;
    auto bins = 20;
    TString ffit;
    ffit.Form("MuLife, " + info + " (tm+ background) %.2f-%.0f", min, max);
@@ -206,21 +206,21 @@ void MuLife()
    //------------------------BLOCK 3---------------------------//
    //------------------ Fiting and drawing --------------------//
 
-   //RooFitResult *fitResult = model.fitTo(rh, IntegrateBins(0.000001), // Extended(true),
-   //                                      Verbose(false), Warnings(false), Save(),
-   //                                      PrintEvalErrors(-1), PrintLevel(-1));
+   RooFitResult *fitResult = model.fitTo(rh, IntegrateBins(0.000001), // Extended(true),
+                                         Verbose(false), Warnings(false), Save(),
+                                         PrintEvalErrors(-1), PrintLevel(-1));
    //--------- print result on terminal -------//
-   //fitResult->Print("v");
+   fitResult->Print("v");
 
    //------------ Plot data and PDF overlaid----------------//
    RooPlot *xframe = t.frame(Title(ffit)); // define frame
 
    rh.plotOn(xframe, MarkerStyle(6), MarkerSize(1)); // plot data
 
-   //model.plotOn(xframe, Components(background), LineColor(41), LineStyle(kDashed));
-   //model.plotOn(xframe, Components(decay_tm), LineColor(30), LineStyle(9));
+   model.plotOn(xframe, Components(background), LineColor(41), LineStyle(kDashed));
+   model.plotOn(xframe, Components(decay_tm), LineColor(30), LineStyle(9));
 
-   //model.plotOn(xframe, LineWidth(2), LineColor(kRed)); // plot fitted pdf
+   model.plotOn(xframe, LineWidth(2), LineColor(kRed)); // plot fitted pdf
 
    // compute Baker-Cousins chi2:
    // converting model to a TF1 and data to a TH1
@@ -246,41 +246,35 @@ void MuLife()
    //-------------plot parameters on figure----------------//
    
    RooArgSet display(tau, tauback, fsig); // parameters to display on figure
-   //model.paramOn(xframe,
-   //              Parameters(display),
-   //              Layout(0.45, 0.6, 0.9), // position
-   //              Format("NE", AutoPrecision()));
-   //rh.statOn(xframe, Layout(0.8, 0.95, 0.92),
-   //          What("N"));
+   model.paramOn(xframe,
+                 Parameters(display),
+                 Layout(0.45, 0.6, 0.9), // position
+                 Format("NE", AutoPrecision()));
+   rh.statOn(xframe, Layout(0.8, 0.95, 0.92),
+             What("N"));
 
    //-----------Pull Plot--------------//
-   //RooHist *hpull = xframe->pullHist();
+   RooHist *hpull = xframe->pullHist();
 
-   //hpull->SetMarkerStyle(6);
-   //hpull->SetLineWidth(0); // no line
+   hpull->SetMarkerStyle(6);
+   hpull->SetLineWidth(0); // no line
 
    //-----------Final Canvas----------//
    auto c1 = new TCanvas("Fit", ffit, 950, 800);
 
-   TPad *pad1 = new TPad("pad1", "The pad 80 of the height", 0.0, 0.0, 1.0, 1.0);  // divide canvas in 2 (fit)
-   //TPad *pad2 = new TPad("pad2", "The pad 20 of the height", 0.0, 0.005, 1, 0.25); //(residuals)
-   //pad1->Draw();
-   //pad2->Draw();
-   //pad1->cd();
-   //pad1->SetBottomMargin(0.4);
+   TPad *pad1 = new TPad("pad1", "The pad 80 of the height", 0.0, 0.2, 1.0, 1.0);  // divide canvas in 2 (fit)
+   TPad *pad2 = new TPad("pad2", "The pad 20 of the height", 0.0, 0.005, 1, 0.25); //(residuals)
+   pad1->Draw();
+   pad2->Draw();
+   pad1->cd();
 
    //------------Bellurie (Fuso cc)------------//
-   xframe->GetYaxis()->SetTitleOffset(1.3);
+   xframe->GetYaxis()->SetTitleOffset(1.5);
    xframe->GetXaxis()->SetTitleSize(0);
-   xframe->GetXaxis()->SetTitle("Lifetime [#mus]");
-   xframe->GetXaxis()->SetLabelFont(43);
-   xframe->GetXaxis()->SetLabelSize(21);
-   //xframe->GetXaxis()->SetTitleOffset(.);
-
-   c1->SetLogy();
+   pad1->SetLogy();
    // xframe->SetMinimum(0.001);
    xframe->Draw();
-/*
+
    pad2->cd();
    pad2->SetBottomMargin(0.4);
    hpull->SetMinimum(-4);
@@ -305,13 +299,13 @@ void MuLife()
    xframe->getAttText()->SetTextSize(0.031); // parameters size and font
    xframe->getAttText()->SetTextFont(43);
    xframe->getAttText()->SetTextSize(21);
-*/
+
    auto tp = new TPaveText(0.15, 0.15, 0.4, 0.35, "NDC");
    tp->AddText("MuLife");
    tp->AddText(authors);
-   //tp->AddText("Run0 22/02/23 26h");
-   //tp->AddText("Run1 23/02/23 115h FAULTY");
-   tp->AddText("Run4 FAKE 08/03/23 26h");
+   tp->AddText("Run0 22/02/23 26h");
+   tp->AddText("Run1 23/02/23 115h FAULTY");
+   //tp->AddText("Run4 FAKE 08/03/23 26h");
    tp->Draw();
 
    TLatex chi;
@@ -319,9 +313,9 @@ void MuLife()
    chi_string.Form("#chi_{BC}^{2}: %.2f", chi2_BC);
    // chi.SetTextFont(43);
    // chi.SetTextSize(91);
-   //chi.DrawLatexNDC(0.75, 0.8, chi_string);
+   chi.DrawLatexNDC(0.75, 0.8, chi_string);
 
-   //c1->Update();
+   c1->Update();
 
    //---------- Save Canvas ---------------//
    // TString ffit_plot = "./Plots/MuLife/Run1/" + hname + "_Fit" + ".pdf";
