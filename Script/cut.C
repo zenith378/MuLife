@@ -200,14 +200,17 @@ void cut()
    Double_t *cc = &chi_vec[0];
    auto c = new TCanvas("chi", "chi", 950, 800);
    auto g1 = new TGraph(nvc, tt, cc);
-   g1->SetTitle("#chi_{BC}^{2} vs time cut on first bin;time cut [#mus];#chi_{BC}^{2}");
+   g1->SetTitle("#chi_{BC}^{2} vs lower time cut;time cut [#mus];#chi_{BC}^{2}");
    //g1->SetMinimum(0.);
    auto l1 = new TLine(0.03, 25.989, 1.05, 25.989);
    auto l2 = new TLine(0.03, 28.869, 1.05, 28.869);
+   auto l3 = new TLine(0.03, 18, 1.05, 18);
    l1->SetLineColor(3);
    l1->SetLineWidth(1);
    l2->SetLineColor(kOrange);
    l2->SetLineWidth(1);
+   l3->SetLineColor(kRed);
+   l3->SetLineWidth(1);
    auto cl1 = new TText(0.8, 23, "significativity 0.05");
    cl1->SetTextSize(21);
    cl1->SetTextFont(43);
@@ -216,19 +219,26 @@ void cut()
    cl2->SetTextSize(21);
    cl2->SetTextFont(43);
    cl2->SetTextColor(kOrange);
+   auto cl3 = new TText(0.2, 19, "ndof=18");
+   cl3->SetTextSize(21);
+   cl3->SetTextFont(43);
+   cl3->SetTextColor(kRed);
    auto tp = new TPaveText(0.7, 90., 1., 160.);
    tp->AddText("MuLife");
    TString date = "06/03/23";
    TString authors = "G. Cordova, A. Giani";
    tp->AddText(authors);
-   tp->AddText("Run0+Run1 " + date);
+   tp->AddText("Run0 22/02/23 26h");
+   tp->AddText("Run1 23/02/23 115h FAULTY");
 
    c->SetLogy();
    g1->Draw("AC*");
    l1->Draw();
    l2->Draw();
+   l3->Draw();
    tp->Draw();
    cl1->Draw();
    cl2->Draw();
+   cl3->Draw();
    return;
 }

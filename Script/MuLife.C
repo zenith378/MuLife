@@ -38,12 +38,15 @@ void MuLife()
    //---------- Define string for data handling----------//
    TString path_to_file = "../Dati/MuLife/";
 
-   TString fname = path_to_file + "22febbraio2023.dat";
-   TString fname1 = path_to_file + "run1_23feb23.dat";
-   TString fname2 = path_to_file + "run4_8mar.dat";
+   TString run0 = path_to_file + "22febbraio2023.dat";
+   TString run1 = path_to_file + "run1_23feb23.dat";
+   TString run2 = path_to_file + "run2_2023.dat";
+   TString run3 = path_to_file + "run3_7mar23.dat";
+   TString run4 = path_to_file + "run4_8mar.dat";
+   TString run5 = path_to_file + "run5_10mar23.dat";
 
    TString hname = "Run1long_tm_backcost_0830_mediumbin";
-   TString info = "FAKE";
+   TString info = "";
    TString date = "23/03/23";
    TString authors = "G. Cordova, A. Giani";
    TString acqtime = "14.5h FAULTY";
@@ -55,9 +58,10 @@ void MuLife()
    Int_t currentIgnoreLevel = gErrorIgnoreLevel;
    gErrorIgnoreLevel = kError;
    TTree *tree = new TTree("tree", "tree");
-   tree->ReadFile(fname, "x/D:y");
-   tree->ReadFile(fname1);
-   //tree->ReadFile(fname2);
+   tree->ReadFile(run0, "x/D:y");
+   tree->ReadFile(run1);
+   tree->ReadFile(run2);
+   tree->ReadFile(run5);
    gErrorIgnoreLevel = currentIgnoreLevel;
 
    TTree *data_tree = new TTree("data tree", "tree of acquired data");
@@ -75,31 +79,25 @@ void MuLife()
    data_tree->Branch("start", &time_start);
    data_tree->Branch("stop", &time_stop);
    data_tree->Branch("eff_time", &effective_time);
-   auto min = 0.45;
+   auto min = 0.1;
    auto max = 20.;
    auto bins = 20;
    TString ffit;
-   ffit.Form("MuLife, " + info + " (tm+ background) %.2f-%.0f", min, max);
+   ffit.Form("MuLife " + info + "%.2f-%.0f", min, max);
 
    //--------- Define Histrogram -----//
    TH1D *h = new TH1D("h", hname, bins, min, max);
 
-   TH1D *h1 = new TH1D("h1", "t1 distribution", 100, 0, 700);
 
-   TH1D *h2 = new TH1D("h", "t2 distribution", 100, 0, 700);
 
    //-- Fill Histogram with stop-start signal--//
    auto tmax = 85.8485;
    auto tmaxx = 687.144;
+   auto tmax_c=-tmax;
+   auto tmaxx_c=-tmaxx;
    for (Int_t i = 0; i < N; i++)
    {
       tree->GetEntry(i);
-      if (channel == 1)
-      {
-         auto ttemp = time;
-         h1->Fill(ttemp);
-         // data_tree->Fill();
-      }
       if (channel == 2)
       {
          auto t2 = time;
@@ -108,29 +106,18 @@ void MuLife()
          tree->GetEntry(i - 1);
          auto t1 = time;
          auto channel1 = channel;
-         /*if(channel2-channel1!=1){
-         std::cout<< "Channel1: "<< channel1 << std::endl;
-         std::cout<< "Channel2: "<< channel2 << std::endl;
-         }*/
-         // h1->Fill(t1);
-         h2->Fill(t2);
          if (channel2 == 2 && channel1 == 1)
          {
             time_start = t1;
             time_stop = t2;
-            auto decaytime = (t2 - t1)+8*pow(10,-9);
-            effective_time = decaytime * pow(10, 6);
-            if (decaytime < 0)
+            auto decaytime = (t2 - t1);
+            if (decaytime < tmaxx_c) decaytime = decaytime + tmaxx;
+            if (tmaxx_c<decaytime < tmax_c) decaytime = decaytime + tmax;
+            
+            effective_time = (decaytime+0*pow(10,-9)) * pow(10, 6);
+            if (effective_time < max && effective_time > min)
             {
-               decaytime = decaytime + tmax;
-               if (t1 > 620 && t2 < 70)
-                  decaytime = decaytime - tmax + tmaxx;
-            }
-            if (decaytime * pow(10, 6) < max && decaytime * pow(10, 6) > min)
-            {
-               effective_time = decaytime * pow(10, 6);
                h->Fill(effective_time);
-               data_tree->Fill();
             }
          }
       }
@@ -143,29 +130,14 @@ void MuLife()
    h->GetXaxis()->SetTitle("Time [#mus]");
    h->SetTitle("Raw Counts " + info);
    h->Draw();
-   auto ch1 = new TCanvas("ch1", "t1 distribution", 950, 800);
-   h1->GetYaxis()->SetTitle("Counts");
-   h1->GetXaxis()->SetTitle("Time [s]");
-   h1->SetTitle("Counts CH1 " + info);
-   h1->Draw();
-
-   auto ch2 = new TCanvas("ch2", "t2 distribution", 950, 800);
-   h2->GetYaxis()->SetTitle("Counts");
-   h2->GetXaxis()->SetTitle("Time [s]");
-   h2->SetTitle("Counts CH2 " + info);
-   h2->Draw();
 
    //-----------------------------BLOCK 2-------------------------------//
    //-------- Constructing the models to be used for fitting -----------//
 
-   RooRealVar start("start", "start time", 0, 690);
-   RooRealVar stop("stop", "stop time", 0, 690);
-
    //-----Define variable (time) and import histogram ---------//
-   RooRealVar t("t", "time [microsec]", 0, 10000);
+   RooRealVar t("t", "time [microsec]", 0, 30);
    RooDataHist rh("rh", "rh", t, Import(*h));
-   RooDataSet raw_data("raw_data", "columnar dataset of t1 and t2", data_tree, RooArgSet(start, stop));
-   // RooDataSet data();
+
 
    //-------lifetime variable---------//
    RooRealVar tau("tau", "mean life of muon", 2.2, 0.001, 10.);
@@ -180,7 +152,7 @@ void MuLife()
    RooDecay decay_tm("decay_tm", "decay", t, tau, tm1, RooDecay::SingleSided);
 
    //--------------gauss1---------------//
-   RooRealVar bias1("bias1", "bias1", 0.039);
+   RooRealVar bias1("bias1", "bias1", 0.03);
    RooRealVar sigma1("sigma1", "sigma1", 0.005);
    RooGaussModel gm1("gm1", "gauss model 1", t, bias1, sigma1);
 
@@ -198,7 +170,7 @@ void MuLife()
    RooNumConvPdf back_conv("back_conv","background with gaus",t,background,gm1);
    //-----------final pdf-------------//
    // RooDecay model = decay_tm;
-   RooAddPdf model("model", "signal and background", RooArgList(decay_tm, background), RooArgList(fsig));
+   RooAddPdf model("model", "signal and background", RooArgList(decay_gm1, background), RooArgList(fsig));
 
    model.fixAddCoefNormalization(RooArgSet(t));
    model.fixCoefNormalization(RooArgSet(t));
@@ -206,7 +178,7 @@ void MuLife()
    //------------------------BLOCK 3---------------------------//
    //------------------ Fiting and drawing --------------------//
 
-   RooFitResult *fitResult = model.fitTo(rh, IntegrateBins(0.000001), // Extended(true),
+   RooFitResult *fitResult = model.fitTo(rh, IntegrateBins(0.0001), // Extended(true),
                                          Verbose(false), Warnings(false), Save(),
                                          PrintEvalErrors(-1), PrintLevel(-1));
    //--------- print result on terminal -------//
@@ -218,7 +190,7 @@ void MuLife()
    rh.plotOn(xframe, MarkerStyle(6), MarkerSize(1)); // plot data
 
    model.plotOn(xframe, Components(background), LineColor(41), LineStyle(kDashed));
-   model.plotOn(xframe, Components(decay_tm), LineColor(30), LineStyle(9));
+   model.plotOn(xframe, Components(decay_gm1), LineColor(30), LineStyle(9));
 
    model.plotOn(xframe, LineWidth(2), LineColor(kRed)); // plot fitted pdf
 
@@ -262,8 +234,8 @@ void MuLife()
    //-----------Final Canvas----------//
    auto c1 = new TCanvas("Fit", ffit, 950, 800);
 
-   TPad *pad1 = new TPad("pad1", "The pad 80 of the height", 0.0, 0.2, 1.0, 1.0);  // divide canvas in 2 (fit)
-   TPad *pad2 = new TPad("pad2", "The pad 20 of the height", 0.0, 0.005, 1, 0.25); //(residuals)
+   TPad *pad1 = new TPad("pad1", "The pad 80 of the height", 0.0, 0.2, .9999, 1.0);  // divide canvas in 2 (fit)
+   TPad *pad2 = new TPad("pad2", "The pad 20 of the height", 0.0, 0.005, 1., 0.25); //(residuals)
    pad1->Draw();
    pad2->Draw();
    pad1->cd();
@@ -300,26 +272,30 @@ void MuLife()
    xframe->getAttText()->SetTextFont(43);
    xframe->getAttText()->SetTextSize(21);
 
-   auto tp = new TPaveText(0.15, 0.15, 0.4, 0.35, "NDC");
+   auto tp = new TPaveText(0.15, 0.15, 0.4, 0.4, "NDC");
    tp->AddText("MuLife");
    tp->AddText(authors);
    tp->AddText("Run0 22/02/23 26h");
    tp->AddText("Run1 23/02/23 115h FAULTY");
-   //tp->AddText("Run4 FAKE 08/03/23 26h");
+   tp->AddText("Run2 30/02/23 115h FAULTY");
+   //tp->AddText("Run4 08/03/23 26h FAKE");
+   tp->AddText("Run5 10/03/23 72h");
    tp->Draw();
-
-   TLatex chi;
+   //TLatex chi;
    TString chi_string;
    chi_string.Form("#chi_{BC}^{2}: %.2f", chi2_BC);
-   // chi.SetTextFont(43);
-   // chi.SetTextSize(91);
-   chi.DrawLatexNDC(0.75, 0.8, chi_string);
-
+   TString  ndof;
+   ndof.Form("ndof: %d",bins-2);
+   TLatex chi;
+   TLatex nd;
+   chi.SetTextFont(43);
+   chi.SetTextSize(25);
+   chi.DrawLatexNDC(0.75, 0.7, chi_string);
+   nd.SetTextFont(43);
+   nd.SetTextSize(25);
+   nd.DrawLatexNDC(0.75, 0.63, ndof);
    c1->Update();
 
-   //---------- Save Canvas ---------------//
-   // TString ffit_plot = "./Plots/MuLife/Run1/" + hname + "_Fit" + ".pdf";
 
-   // c1->SaveAs(ffit_plot);
    return;
 }
