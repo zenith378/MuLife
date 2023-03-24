@@ -8,15 +8,15 @@
 #include <iostream>
 #include <vector>
 
-void el_spectru()
+void el_spectrum()
 {
-    TFile * f0 = new TFile("build/el_spectrum0.root");
-    TFile * f1 = new TFile("build/el_spectrum1.root");
-    TFile * f2 = new TFile("build/el_spectrum2.root");
-    TFile * f3 = new TFile("build/el_spectrum3.root");
-    TFile * f4 = new TFile("build/el_spectrum4.root");
-    TFile * f5 = new TFile("build/el_spectrum5.root");
-    TFile * f6 = new TFile("build/el_spectrum6.root");
+    TFile * f0 = new TFile("./el_spectrum0.root");
+    TFile * f1 = new TFile("./el_spectrum1.root");
+    TFile * f2 = new TFile("./el_spectrum2.root");
+    TFile * f3 = new TFile("./el_spectrum3.root");
+    TFile * f4 = new TFile("./el_spectrum4.root");
+    TFile * f5 = new TFile("./el_spectrum5.root");
+    TFile * f6 = new TFile("./el_spectrum6.root");
 
     //endpoint = 52.8 MeV
     TH1F * h1 = new TH1F("h1", "h1", 100, 0, 100);

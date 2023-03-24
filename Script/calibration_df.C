@@ -3,7 +3,7 @@
 #include "ROOT/RVec.hxx"
 #include <stdio.h>
 #include "math.h"
-
+#include "TFile.h"
 #include "TH1.h"
 #include "TCanvas.h"
 #include "TStyle.h"
@@ -16,6 +16,7 @@
 #include <string.h>
 #include <filesystem>
 #include "TLatex.h"
+#include "TLegend.h"
 
 void calibration_df()
 {
@@ -37,6 +38,13 @@ void calibration_df()
    //Define tree
    TTree *tree1 = new TTree("energy_spectrum", "Energy spectrum");
    tree1->ReadFile(fname4, "time/D:E_in_v/D:E_fin_v");
+
+   //TTree *mc_tree = new TTree("cal", "monte carlo calibration");
+   //mc_tree->ReadFile("../cal.root");
+
+   TFile * f0 = new TFile("../cal.root");
+   TTree * t_mc = (TTree *)f0->Get("In the target");
+   ROOT::RDataFrame df_mc(*t_mc);
 
 
    //binning for histograms
@@ -64,14 +72,56 @@ void calibration_df()
    auto df_cor = df_cut.Define("E_fin_cor","E_fin+0.1031*E_in")
                         .Define("E_cor","(E_fin_cor-E_in)");
 
+
+
+   auto c = new TCanvas("c", "rawhist", 950, 800);
+
+   auto h1 = df_cut.Histo1D({"h1","Data", 200, 0.1*77.44, 1.7*77.44}, "E_in");
+   h1->SetBinErrorOption(TH1::EBinErrorOpt::kPoisson);
+   h1->SetMarkerStyle(8);
+   h1->SetMarkerSize(1);
+   h1->SetLineColor(kBlack);
+   h1->SetMarkerColor(kBlack);
+   h1->SetStats(0);
+
+   auto h0 = df_mc.Histo1D({"h0","Monte Carlo",200,0.1*77.44,1.7*77.44},"EdepTarget");
+   h0->SetTitle("Energy for Muons at MIP (calibration)");
+   h0->GetYaxis()->SetTitle("Counts");
+   h0->GetXaxis()->SetTitle("Energy [MeV]");
+   h0->Scale(0.7343209036);
+   h0->SetFillColor(38);
+   h0->SetStats(0);
+   h0->DrawClone("hist");
+   h1->DrawClone("E1 SAME");
+
+   auto tp0 = new TPaveText(0.15, 0.7, 0.35, 0.85, "NDC");
+   tp0->AddText("MuLife");
+   tp0->AddText(authors);
+   tp0->AddText("Calibration 16/03/23 5h");
+   tp0->AddText("Cut on E>7.5 MeV to avoid pedestal");
+   TArrow *ar0 = new TArrow(0.5*77.44,320,0.75*77.44,320,0.02,"|>");
+   TText *t0 = new TText(0.12*77.44,320,"Peak at 62 MeV");
+   t0->SetTextSize(21);
+   t0->SetTextFont(43);
+   ar0->Draw();
+   t0->Draw();
+   TArrow *ar11 = new TArrow(1.*77.44,240,1.2*77.44,240,0.02,"<|");
+   TText *t11 = new TText(1.2*77.44,240,"Horn at 74 MeV due to unequalized PMT");
+   t11->SetTextSize(21);
+   t11->SetTextFont(43);
+   ar11->Draw();
+   t11->Draw();
+   tp0->Draw();
+   auto legend = new TLegend(0.1,0.7,0.48,0.9);
+   legend->AddEntry("h1","Data");
+   legend->AddEntry("h0","Monte Carlo");
+   legend->Draw();
+/*
+
    auto c1 = new TCanvas("c1", "rawhist", 950, 800);
 
    // c1->cd();
-   auto h1 = df_cut.Histo1D({"h1","Energy from CH1 (JIT acquired) corrected and calibrated", 100, 0.1, 1.7}, "E_in_v");
-   h1->SetBinErrorOption(TH1::EBinErrorOpt::kPoisson);
-   h1->GetYaxis()->SetTitle("Counts");
-   h1->GetXaxis()->SetTitle("Charge in CH1 (Energy) [V]");
-   h1->SetTitle("Raw target 'energy' from Muons read in CH1 (JIT)");
+
    h1->DrawClone("E1");
    auto tp1 = new TPaveText(0.15, 0.7, 0.35, 0.85, "NDC");
    tp1->AddText("MuLife");
@@ -188,13 +238,7 @@ void calibration_df()
    //gPad->Modified(); gPad->Update();
 
    f->Draw("SAME");
-   /*TPaveText *st = (TPaveText*)g->FindObject("stats");
-   st->SetX1NDC(.7);
-   st->SetX2NDC(.9);
-   st->SetY1NDC(0.2);
-   st->SetY2NDC(0.5);
-   st->Draw("SAME");
-*/
+
 
    auto c6 = new TCanvas("c6","resolution fit", 950, 800);
 
@@ -228,7 +272,7 @@ void calibration_df()
    tp7->AddText("CH0 is read 5 #mus after CH1");
    tp7->AddText("Cut on CH0>0 and 0<CH1<0.7");
 
-
+*/
    auto report = df_new.Report(); // request cut report
 
    report->Print();           // print cut report on the terminal
